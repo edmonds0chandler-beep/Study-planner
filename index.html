@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Study Tracker</title>
+<meta name="description" content="A calm, minimal timer for tracking study and revision time." />
+
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#faf9f6" id="themeColorMeta" />
+
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Study" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png" />
+
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <header class="app-header" id="appHeader">
+    <div class="app-header-row">
+      <h1 class="app-title" id="screenHeading">Timer</h1>
+      <div class="app-header-meta" id="headerMeta"></div>
+    </div>
+  </header>
+
+  <!-- ============ TIMER ============ -->
+  <main class="screen timer-screen" id="screen-timer">
+
+    <div class="timer-setup" id="timerSetup">
+      <div>
+        <span class="field-label">Subject</span>
+        <div class="subject-picker" id="subjectPicker"></div>
+      </div>
+
+      <div>
+        <span class="field-label">Mode</span>
+        <div class="mode-toggle" id="modeToggle">
+          <button type="button" class="mode-btn mode-study" data-mode="study">Study</button>
+          <button type="button" class="mode-btn mode-revision" data-mode="revision">Revision</button>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-lg" id="startBtn" disabled>Start session</button>
+    </div>
+
+    <div class="timer-active" id="timerActive" hidden>
+      <div class="timer-context" id="timerContext">
+        <span class="dot"></span>
+        <span id="timerContextLabel">Subject · Study</span>
+      </div>
+
+      <div class="timer-ring-wrap">
+        <svg viewBox="0 0 300 300">
+          <circle class="timer-ring-track" cx="150" cy="150" r="132" fill="none" stroke-width="10"></circle>
+          <circle class="timer-ring-progress" id="timerRingProgress" cx="150" cy="150" r="132" fill="none" stroke-width="10"
+            stroke-dasharray="829.4" stroke-dashoffset="829.4"></circle>
+        </svg>
+        <div class="timer-ring-content">
+          <div class="timer-display" id="timerDisplay">00:00:00</div>
+          <div class="timer-status" id="timerStatusLabel">Running</div>
+        </div>
+      </div>
+
+      <div class="timer-controls">
+        <button type="button" class="btn btn-secondary btn-lg" id="pauseResumeBtn">Pause</button>
+        <button type="button" class="btn btn-accent btn-lg" id="finishBtn">Finish</button>
+      </div>
+
+      <button type="button" class="btn btn-ghost btn-sm" id="discardBtn" style="margin-top:18px;">Discard session</button>
+    </div>
+
+  </main>
+
+  <!-- ============ DASHBOARD ============ -->
+  <main class="screen" id="screen-dashboard" hidden>
+
+    <div class="section" style="margin-top:6px;">
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-value" id="statToday">0m</div>
+          <div class="stat-label">Today</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-value" id="statWeek">0m</div>
+          <div class="stat-label">This week</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-value" id="statMonth">0m</div>
+          <div class="stat-label">This month</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="section-title">Weekly target</span>
+        <span class="section-action" data-nav="settings">Edit</span>
+      </div>
+      <div class="panel target-panel">
+        <div class="target-info">
+          <div class="target-info-title" id="targetTitle">0h of 5h</div>
+          <div class="target-info-sub" id="targetSub">this week</div>
+          <div class="progress-track"><div class="progress-fill" id="targetProgressFill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="section-title">Breakdown</span>
+      </div>
+      <div class="dash-row">
+        <div class="panel chart-panel">
+          <div class="chart-title-row"><span class="chart-title">By subject</span></div>
+          <div class="donut-wrap">
+            <canvas id="donutChart" width="140" height="140" style="width:120px;height:120px;flex:none;"></canvas>
+            <div class="legend-list" id="donutLegend"></div>
+          </div>
+        </div>
+        <div class="panel chart-panel">
+          <div class="chart-title-row"><span class="chart-title">Study vs Revision</span></div>
+          <div class="compare-bars" id="compareBars"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="panel chart-panel">
+        <div class="chart-title-row">
+          <span class="chart-title">Study time</span>
+          <div class="range-switch" id="rangeSwitch">
+            <button type="button" data-range="7" class="is-active">7 days</button>
+            <button type="button" data-range="30">30 days</button>
+          </div>
+        </div>
+        <canvas id="barChart" height="160"></canvas>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ============ HISTORY ============ -->
+  <main class="screen" id="screen-history" hidden>
+    <div class="section" style="margin-top:6px;">
+      <div class="section-head">
+        <span class="section-title">All sessions</span>
+        <button type="button" class="section-action" id="addSessionBtn" style="background:none;border:none;">+ Add</button>
+      </div>
+      <div id="historyContent"></div>
+    </div>
+  </main>
+
+  <!-- ============ STATS ============ -->
+  <main class="screen" id="screen-stats" hidden>
+    <div class="section" style="margin-top:6px;">
+      <div class="stat-grid" id="statsGrid"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="section-title">Time by subject</span></div>
+      <div class="panel panel-pad">
+        <div class="compare-bars" id="subjectBars"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ SETTINGS ============ -->
+  <main class="screen" id="screen-settings" hidden>
+
+    <div class="section" style="margin-top:6px;">
+      <div class="section-head">
+        <span class="section-title">Subjects</span>
+        <button type="button" class="section-action" id="addSubjectBtn" style="background:none;border:none;">+ Add</button>
+      </div>
+      <div class="settings-list" id="subjectSettingsList"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="section-title">Weekly target</span></div>
+      <div class="settings-list">
+        <div class="settings-row">
+          <span class="settings-row-label">Hours per week</span>
+          <input type="number" class="text-input" id="weeklyTargetInput" min="0" max="100" step="0.5" style="width:100px; text-align:right;" />
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="section-title">Appearance</span></div>
+      <div class="settings-list">
+        <div class="settings-row">
+          <span class="settings-row-label">Theme</span>
+          <div class="theme-switch" id="themeSwitch">
+            <button type="button" data-theme="light">Light</button>
+            <button type="button" data-theme="system">Auto</button>
+            <button type="button" data-theme="dark">Dark</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="section-title">Data</span></div>
+      <div class="panel panel-pad">
+        <div class="data-actions">
+          <button type="button" class="btn btn-secondary" id="exportBtn">Export data</button>
+          <button type="button" class="btn btn-secondary" id="importBtn">Import data</button>
+          <button type="button" class="btn btn-danger" id="resetBtn">Erase all data</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json" class="sr-only" />
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="section-title">About</span></div>
+      <p class="about-text">Study Tracker stores everything locally on this device. Nothing is sent anywhere. Use Export to keep a backup.</p>
+    </div>
+
+  </main>
+
+  <nav class="tabbar">
+    <div class="tabbar-inner">
+      <button type="button" class="tab-btn is-active" data-screen="timer">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        <span>Timer</span>
+      </button>
+      <button type="button" class="tab-btn" data-screen="dashboard">
+        <svg viewBox="0 0 24 24"><path d="M4 19V10M12 19V5M20 19v-7"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button type="button" class="tab-btn" data-screen="history">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        <span>History</span>
+      </button>
+      <button type="button" class="tab-btn" data-screen="stats">
+        <svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-9"/><path d="M14 7h6v6"/></svg>
+        <span>Stats</span>
+      </button>
+      <button type="button" class="tab-btn" data-screen="settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1.04 1.56V21a2 2 0 01-4 0v-.09A1.7 1.7 0 008.9 19.36a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.54 15 1.7 1.7 0 003 13.96H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 8.6a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 008.9 4.64 1.7 1.7 0 0010 3.6V3.5a2 2 0 014 0v.09a1.7 1.7 0 001.04 1.56 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.36 9c.14.4.4.74.75.97"/></svg>
+        <span>Settings</span>
+      </button>
+    </div>
+  </nav>
+
+</div>
+
+<!-- ============ SESSION MODAL ============ -->
+<div class="modal-backdrop" id="sessionModalBackdrop">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h2 class="modal-title" id="sessionModalTitle">Add session</h2>
+      <button type="button" class="btn btn-icon btn-ghost" data-close-modal>
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <form id="sessionForm">
+      <div class="form-group">
+        <span class="field-label">Subject</span>
+        <select class="select-input" id="sessionSubject" required></select>
+      </div>
+
+      <div class="form-group">
+        <span class="field-label">Type</span>
+        <div class="mode-toggle" id="sessionModeToggle">
+          <button type="button" class="mode-btn mode-study is-selected" data-mode="study">Study</button>
+          <button type="button" class="mode-btn mode-revision" data-mode="revision">Revision</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <span class="field-label">Date</span>
+        <input type="date" class="text-input" id="sessionDate" required />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <span class="field-label">Start time</span>
+          <input type="time" class="text-input" id="sessionStart" required />
+        </div>
+        <div class="form-group">
+          <span class="field-label">End time</span>
+          <input type="time" class="text-input" id="sessionEnd" required />
+        </div>
+      </div>
+      <div class="inline-error" id="sessionError" hidden></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="deleteSessionBtn" hidden>Delete</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ SUBJECT MODAL ============ -->
+<div class="modal-backdrop" id="subjectModalBackdrop">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h2 class="modal-title" id="subjectModalTitle">Add subject</h2>
+      <button type="button" class="btn btn-icon btn-ghost" data-close-modal>
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <form id="subjectForm">
+      <div class="form-group">
+        <span class="field-label">Name</span>
+        <input type="text" class="text-input" id="subjectName" maxlength="40" placeholder="e.g. Chemistry" required />
+      </div>
+
+      <div class="form-group">
+        <span class="field-label">Colour</span>
+        <div class="color-grid" id="colorGrid"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="deleteSubjectBtn" hidden>Delete</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
